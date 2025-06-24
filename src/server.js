@@ -12,14 +12,14 @@ app.use(express.json());
 const genAI = new GoogleGenerativeAI("AIzaSyAJOmYivE04GtQUOY8ARs1uClvpOiF11VY");
 
 app.post("/generate", async (req, res) => {
+  const { prompt } = req.body;
+
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-    const result = await model.generateContent(req.body.prompt);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const result = await model.generateContent(prompt);
     const response = await result.response;
-    const text = response.text();
 
-    res.json({ result: text });
+    res.json({ result: response.text() });
   } catch (err) {
     console.error(err);
     res.status(500).send("API Error");
