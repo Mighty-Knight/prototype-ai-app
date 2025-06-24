@@ -1,166 +1,116 @@
-// import { useState } from "react";
-// import reactLogo from "./assets/react.svg";
-// import viteLogo from "/vite.svg";
-import "./App.css";
-
-import { useState } from "react";
-
-// function App() {
-//   const [prompt, setPrompt] = useState("");
-//   const [response, setResponse] = useState("");
-//   const [loading, setLoading] = useState(false);
-
-//   const handleClick = async () => {
-//     if (!prompt.trim()) return;
-
-//     setLoading(true);
-//     setResponse("");
-
-//     try {
-//       const res = await fetch("http://localhost:3001/generate", {
-//         method: "POST",
-//         headers: {
-//           "Content-Type": "application/json",
-//         },
-//         body: JSON.stringify({ prompt }),
-//       });
-
-//       const data = await res.json();
-//       setResponse(data.result);
-//     } catch (error) {
-//       console.error("Error:", error);
-//       setResponse("Error fetching response.");
-//     }
-
-//     setLoading(false);
-//   };
-
-//   return (
-//     <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-start p-8">
-//       <h1 className="text-3xl font-bold mb-6">Ask Gemini</h1>
-
-//       <textarea
-//         className="w-full max-w-2xl p-4 mb-4 rounded-lg border border-gray-700 bg-gray-800 text-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-//         rows={4}
-//         value={prompt}
-//         onChange={(e) => setPrompt(e.target.value)}
-//         placeholder="Type your prompt here..."
-//       />
-
-//       <button
-//         onClick={handleClick}
-//         disabled={loading}
-//         className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-6 py-2 rounded-lg transition mb-6"
-//       >
-//         {loading ? "Loading..." : "Ask AI"}
-//       </button>
-
-//       <div className="w-full max-w-2xl bg-gray-800 p-4 rounded-lg border border-gray-700">
-//         <h2 className="text-lg font-semibold mb-2">Response:</h2>
-//         <p className="whitespace-pre-wrap">{response}</p>
-//       </div>
-//     </div>
-//   );
-// }
+import React, { useState } from "react";
+import RadarSelector from "./RadarSelector"; // Import the new component
 
 function App() {
   const [prompt, setPrompt] = useState("");
   const [history, setHistory] = useState([]);
-  const [context, setContext] = useState("");
   const [loading, setLoading] = useState(false);
+  const [priorities, setPriorities] = useState({
+    "Traded Funds": 2,
+    Bonds: 4,
+    Equities: 3,
+    "Mutual Funds": 1,
+  });
 
   const handleClick = async () => {
-    if (!prompt.trim()) return;
+    if (!prompt.trim() || loading) return;
     setLoading(true);
 
     const userMessage = { role: "user", content: prompt };
-    const systemMessage = context ? { role: "system", content: context } : null;
-
-    const messages = systemMessage
-      ? [systemMessage, ...history, userMessage]
-      : [...history, userMessage];
+    setHistory((prev) => [...prev, userMessage]);
+    setPrompt("");
 
     try {
       const res = await fetch("http://localhost:3001/generate", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          prompt: messages.map((m) => `${m.role}: ${m.content}`).join("\n"),
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, priorities }),
       });
 
       const data = await res.json();
-
       const aiMessage = { role: "ai", content: data.result };
-
-      setHistory([...messages, aiMessage]);
-      setPrompt("");
+      setHistory((prev) => [...prev, aiMessage]);
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error fetching AI response:", error);
+      const errorMessage = {
+        role: "ai",
+        content: "Sorry, I encountered an error. Please try again.",
+      };
+      setHistory((prev) => [...prev, errorMessage]);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center p-6">
-      <h1 className="text-3xl font-bold mb-4">Chat with Gemini</h1>
+    <div className="min-h-screen bg-white text-gray-900 flex justify-center items-center font-sans">
+      <main className="w-full max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+        <div className="text-center mb-6">
+          <h1 className="text-3xl font-bold">AI Investment Assistant</h1>
+          <p className="text-gray-600 mt-1">
+            Set your investment priorities and ask for advice
+          </p>
+        </div>
 
-      <div className="w-full max-w-3xl mb-4">
-        <textarea
-          className="w-full p-3 rounded-lg border border-gray-700 bg-gray-800 text-white mb-2"
-          rows={2}
-          value={context}
-          onChange={(e) => setContext(e.target.value)}
-          placeholder="Add custom AI context (optional, e.g., 'You are a friendly teacher')"
-        />
-      </div>
-
-      <div className="w-full max-w-3xl mb-4 overflow-y-auto h-[400px] bg-gray-800 p-4 rounded-lg border border-gray-700">
-        {history.map((msg, idx) => (
-          <div
-            key={idx}
-            className={`mb-4 ${
-              msg.role === "user" ? "text-right" : "text-left"
-            }`}
-          >
-            <span
-              className={`inline-block px-4 py-2 rounded-lg ${
-                msg.role === "user"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-700 text-green-300"
-              }`}
-            >
-              {msg.content}
-            </span>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Column: Radar Chart */}
+          <div className="bg-gray-50 rounded-lg p-4 flex flex-col justify-center items-center">
+            <h2 className="text-xl font-semibold mb-2">Investment Types</h2>
+            <RadarSelector
+              priorities={priorities}
+              setPriorities={setPriorities}
+            />
           </div>
-        ))}
-        {loading && (
-          <div className="text-left animate-pulse text-gray-400">
-            Gemini is thinking...
-          </div>
-        )}
-      </div>
 
-      <div className="w-full max-w-3xl flex gap-2">
-        <input
-          className="flex-grow p-3 rounded-lg border border-gray-700 bg-gray-800 text-white"
-          type="text"
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleClick()}
-          placeholder="Ask something..."
-        />
-        <button
-          onClick={handleClick}
-          disabled={loading}
-          className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-5 py-2 rounded-lg"
-        >
-          {loading ? "..." : "Send"}
-        </button>
-      </div>
+          {/* Right Column: Chat */}
+          <div className="flex flex-col bg-gray-50 rounded-lg p-4 h-[60vh]">
+            <div className="flex-1 overflow-y-auto mb-4 pr-2">
+              {history.map((msg, idx) => (
+                <div
+                  key={idx}
+                  className={`mb-4 flex ${
+                    msg.role === "user" ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  <div
+                    className={`inline-block max-w-sm px-4 py-2 rounded-lg ${
+                      msg.role === "user"
+                        ? "bg-purple-600 text-white"
+                        : "bg-gray-200 text-gray-800"
+                    }`}
+                  >
+                    {msg.content || "..."}
+                  </div>
+                </div>
+              ))}
+              {loading && (
+                <div className="text-left text-gray-500 animate-pulse">
+                  AI is thinking...
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <input
+                className="flex-grow p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                type="text"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                onKeyDown={(e) =>
+                  e.key === "Enter" && !loading && handleClick()
+                }
+                placeholder="Ask for advice..."
+              />
+              <button
+                onClick={handleClick}
+                disabled={loading}
+                className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white px-5 py-2 rounded-lg transition-colors font-semibold"
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
