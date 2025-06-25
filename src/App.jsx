@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import RadarSelector from "./RadarSelector"; // Import the new component
+import RadarSelector from "./RadarSelector"; // Make sure this component is in the same directory
 
 function App() {
   const [prompt, setPrompt] = useState("");
@@ -11,6 +11,8 @@ function App() {
     Equities: 3,
     "Mutual Funds": 1,
   });
+  // New state for manual context
+  const [manualContext, setManualContext] = useState("");
 
   const handleClick = async () => {
     if (!prompt.trim() || loading) return;
@@ -24,7 +26,8 @@ function App() {
       const res = await fetch("http://localhost:3001/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, priorities }),
+        // Send the new manualContext along with other data
+        body: JSON.stringify({ prompt, priorities, manualContext }),
       });
 
       const data = await res.json();
@@ -53,17 +56,34 @@ function App() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Column: Radar Chart */}
+          {/* Left Column: Radar Chart & Manual Context */}
           <div className="bg-gray-50 rounded-lg p-4 flex flex-col justify-center items-center">
             <h2 className="text-xl font-semibold mb-2">Investment Types</h2>
             <RadarSelector
               priorities={priorities}
               setPriorities={setPriorities}
             />
+            {/* New Manual Context Input Field */}
+            <div className="w-full mt-4">
+              <label
+                htmlFor="manualContext"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Additional Context
+              </label>
+              <textarea
+                id="manualContext"
+                rows="2"
+                className="w-full p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                value={manualContext}
+                onChange={(e) => setManualContext(e.target.value)}
+                placeholder="e.g., 'focus on long-term growth' or 'explain like I'm a beginner'"
+              />
+            </div>
           </div>
 
           {/* Right Column: Chat */}
-          <div className="flex flex-col bg-gray-50 rounded-lg p-4 h-[60vh]">
+          <div className="flex flex-col bg-gray-50 rounded-lg p-4 h-[60vh] lg:h-auto">
             <div className="flex-1 overflow-y-auto mb-4 pr-2">
               {history.map((msg, idx) => (
                 <div
